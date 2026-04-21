@@ -2,9 +2,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os, json, logging, base64
-from datetime import datetime, time as dtime
+from datetime import datetime, time as dtime, timezone, timedelta
 from io import BytesIO
-import pytz
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackContext
 from google import genai
@@ -15,7 +14,12 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 logging.basicConfig(level=logging.INFO)
-WIB = pytz.timezone('Asia/Jakarta')
+try:
+    from zoneinfo import ZoneInfo
+    WIB = ZoneInfo("Asia/Jakarta")
+except Exception:
+    # Keep app running even when IANA tz database is unavailable.
+    WIB = timezone(timedelta(hours=7))
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 MODEL = "gemini-2.5-flash-lite"
 
@@ -429,7 +433,7 @@ def main():
     app.add_handler(CommandHandler("hutang", hutang_cmd))
     app.add_handler(CommandHandler("lunas", lunas))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    app.job_queue.run_daily(jadwal_rekap_malam, time=dtime(hour=14, minute=0, tzinfo=pytz.utc))
+    app.job_queue.run_daily(jadwal_rekap_malam, time=dtime(hour=14, minute=0, tzinfo=timezone.utc))
     app.run_polling()
 
 if __name__ == "__main__":
