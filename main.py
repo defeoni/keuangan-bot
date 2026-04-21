@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv()
 import os, json, logging, base64
 from datetime import datetime, time as dtime
 import pytz
