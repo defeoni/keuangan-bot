@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 logging.basicConfig(level=logging.INFO)
 WIB = pytz.timezone('Asia/Jakarta')
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-MODEL = "gemini-2.5-flash-lite"
+MODEL = "gemini-2.0-flash-lite"
 
 def get_spreadsheet():
     creds_json = base64.b64decode(os.environ.get("GOOGLE_CREDENTIALS_B64")).decode('utf-8')
@@ -341,7 +341,9 @@ async def grafik(update: Update, context: ContextTypes.DEFAULT_TYPE):
             colors=colors[:len(by_cat)], startangle=90, pctdistance=0.8
         )
         for t in texts: t.set_fontsize(11)
-        for t in autotexts: t.set_fontsize(9); t.set_color('white')
+        for t in autotexts:
+    t.set_fontsize(9)
+    t.set_color('white')
         now = datetime.now(WIB)
         total = sum(by_cat.values())
         ax.set_title(f"Pengeluaran {now.strftime('%B %Y')}\nTotal: Rp {total:,}", fontsize=12, pad=15)
