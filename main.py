@@ -12,7 +12,7 @@ from google.oauth2.service_account import Credentials
 logging.basicConfig(level=logging.INFO)
 WIB = pytz.timezone('Asia/Jakarta')
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-2.0-flash')
 
 def get_sheet():
     creds_json = base64.b64decode(os.environ.get("GOOGLE_CREDENTIALS_B64")).decode('utf-8')
