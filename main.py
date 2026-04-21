@@ -1,18 +1,21 @@
 from dotenv import load_dotenv
 load_dotenv()
-import os, json, logging, base64
+
+import os, json, logging
 from datetime import datetime, time as dtime
 import pytz
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackContext
-import google.generativeai as genai
+from google import genai
 import gspread
 from google.oauth2.service_account import Credentials
+import base64
 
 logging.basicConfig(level=logging.INFO)
 WIB = pytz.timezone('Asia/Jakarta')
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-model = genai.GenerativeModel('gemini-2.0-flash-lite')
+
+client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+MODEL = "gemini-2.5-flash-lite"
 
 def get_sheet():
     creds_json = base64.b64decode(os.environ.get("GOOGLE_CREDENTIALS_B64")).decode('utf-8')
@@ -21,8 +24,8 @@ def get_sheet():
         'https://spreadsheets.google.com/feeds',
         'https://www.googleapis.com/auth/drive'
     ])
-    client = gspread.authorize(creds)
-    sheet = client.open_by_key(os.environ.get("SHEET_ID")).sheet1
+    gc = gspread.authorize(creds)
+    sheet = gc.open_by_key(os.environ.get("SHEET_ID")).sheet1
     if not sheet.row_values(1):
         sheet.append_row(["Tanggal","Jam","User ID","Jenis","Jumlah","Kategori","Keterangan"])
     return sheet
@@ -34,7 +37,7 @@ Balas HANYA dengan JSON tanpa markdown, contoh:
 {{"jenis":"pengeluaran","jumlah":25000,"kategori":"makanan","keterangan":"beli makan siang"}}
 Kategori pilihan: makanan, transportasi, belanja, hiburan, tagihan, gaji, bisnis, lainnya
 Jika bukan transaksi keuangan balas: {{"error":"bukan transaksi"}}"""
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(model=MODEL, contents=prompt)
     clean = response.text.strip().replace('```json','').replace('```','').strip()
     return json.loads(clean)
 
@@ -80,7 +83,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     except Exception as ex:
         logging.error(f"Error: {ex}")
-        await update.message.reply_text("Maaf, terjadi kesalahan. Coba lagi!")
+        await update.message.reply_text(f"Debug error: {str(ex)}")
 
 async def saldo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
@@ -95,7 +98,7 @@ async def saldo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     except Exception as ex:
         logging.error(f"Error saldo: {ex}")
-        await update.message.reply_text("Gagal mengambil data saldo.")
+        await update.message.reply_text(f"Debug error: {str(ex)}")
 
 async def rekap(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await kirim_rekap(str(update.effective_user.id), context.bot)
@@ -134,7 +137,6 @@ def main():
     app.add_handler(CommandHandler("saldo", saldo))
     app.add_handler(CommandHandler("rekap", rekap))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    # 21:00 WIB = 14:00 UTC
     app.job_queue.run_daily(jadwal_rekap_malam, time=dtime(hour=14, minute=0, tzinfo=pytz.utc))
     app.run_polling()
 
